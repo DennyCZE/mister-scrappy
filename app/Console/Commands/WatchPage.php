@@ -44,7 +44,8 @@ class WatchPage extends Command
                 $elements = $this->scrapAndCompare($elements);
             } catch (Exception $exception) {
                 $this->error(sprintf('Unexcepted error (%s) occured at %s', $exception->getMessage(), Carbon::now()->format('Y-m-d H:i:s')));
-                Log::error('Watching page command exception: ' . $exception->getMessage(), $exception->getTrace());
+                Log::error('Watching page command exception: ' . $exception->getMessage());
+                Log::error($exception);
             }
         }
     }
@@ -74,7 +75,7 @@ class WatchPage extends Command
     {
         $newElements = collect($this->scrap());
 
-        $difference = $rememberedElements->diff($newElements);
+        $difference = $rememberedElements->flatten()->diffAssoc($newElements->flatten());
         foreach ($difference as $element) {
             $this->warn(sprintf('!!! Element updated at %s !!!', Carbon::now()->format('Y-m-d H:i:s')));
 
