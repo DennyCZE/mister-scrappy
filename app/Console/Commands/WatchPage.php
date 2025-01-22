@@ -93,7 +93,8 @@ class WatchPage extends Command
             if (in_array($key, $differences['new'])) {
                 $notifyElements[] = [
                     'type' => 'updated',
-                    'element' => $rememberedElements->get($key),
+                    'element' => $newElements->get($key),
+                    'orig_element' => $rememberedElements->get($key),
                 ];
             } else {
                 $notifyElements[] = [
@@ -114,9 +115,27 @@ class WatchPage extends Command
         foreach ($notifyElements as $element) {
             $this->warn(sprintf('!!! Element updated at %s !!!', Carbon::now()->format('Y-m-d H:i:s')));
 
+            $note = "Element was {$element['type']}";
+            try {
+                if (isset($element['orig_element'])) {
+                   $note .= sprintf(
+                       " (JSON with changes %s)",
+                       json_encode(collect($element['orig_element'])->flatten()->diffAssoc(collect($element['element'])->flatten())->toArray())
+                   );
+                }
+            } catch (Exception $exception) {
+                $this->error(sprintf('Unexcepted error (%s) occured at %s', $exception->getMessage(), Carbon::now()->format('Y-m-d H:i:s')));
+                Log::error('Watching page parsing changes exception: ' . $exception->getMessage());
+                Log::error($exception);
+            }
+
             $discordNotifier = new DiscordNotifier();
             $discordNotifier->notifyWebhook(
-                $discordNotifier->prepareMessage(config('scrapper.url'), $element['element'], "Element was {$element['type']}")
+                $discordNotifier->prepareMessage(
+                    config('scrapper.url'),
+                    $element['element'],
+                    $note,
+                )
             );
         }
 
