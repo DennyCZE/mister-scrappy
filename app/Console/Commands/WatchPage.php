@@ -8,6 +8,7 @@ use App\Models\PageStage;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class WatchPage extends Command
@@ -33,19 +34,14 @@ class WatchPage extends Command
     {
         $this->info('Starting watch page ' . config('scrapper.url'));
 
-        $this->info('- Check DB for last saved state...');
-        $stage = PageStage::where('uri', config('scrapper.url'))->first();
-        if (!$stage) {
-            $this->info('-- Page was not scrapped yet. Scrapping now.');
-            $stage = $this->scrapAndSave();
-            $this->info('-- Page scrapped. Page stage set.');
-        }
+        $this->info('- Scrapping page data...');
+        $elements = collect($this->scrap());
 
         $this->info('- Watching page');
         while (true) {
             sleep(config('scrapper.watcher_timeout'));
             try {
-                $this->scrapAndCompare($stage);
+                $elements = $this->scrapAndCompare($elements);
             } catch (Exception $exception) {
                 $this->error(sprintf('Unexcepted error (%s) occured at %s', $exception->getMessage(), Carbon::now()->format('Y-m-d H:i:s')));
                 Log::error('Watching page command exception: ' . $exception->getMessage(), $exception->getTrace());
@@ -74,22 +70,24 @@ class WatchPage extends Command
         return $stage;
     }
 
-    private function scrapAndCompare(PageStage $stage)
+    private function scrapAndCompare(Collection $rememberedElements)
     {
-        $first = collect($this->scrap())->first();
+        $newElements = collect($this->scrap());
 
-        if ($stage->first_element_data != json_encode($first)) {
-            $this->warn(sprintf('!!! Elements updated at %s !!!', Carbon::now()->format('Y-m-d H:i:s')));
+        $difference = $rememberedElements->diff($newElements);
+        foreach ($difference as $element) {
+            $this->warn(sprintf('!!! Element updated at %s !!!', Carbon::now()->format('Y-m-d H:i:s')));
 
             $discordNotifier = new DiscordNotifier();
             $discordNotifier->notifyWebhook(
-                $discordNotifier->prepareMessage(config('scrapper.url'), $first)
+                $discordNotifier->prepareMessage(config('scrapper.url'), $element)
             );
 
-            $stage->update([
-                'first_element_data' => json_encode($first),
-                'updated_at' => now(),
-            ]);
+            if ($newElements !== $rememberedElements) {
+                $rememberedElements = $newElements;
+            }
         }
+
+        return $rememberedElements;
     }
 }
