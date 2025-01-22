@@ -75,7 +75,7 @@ class WatchPage extends Command
     {
         $newElements = collect($this->scrap());
 
-        $difference = $rememberedElements->flatten()->diffAssoc($newElements->flatten());
+        $difference = $rememberedElements->flatten()->diff($newElements->flatten());
         foreach ($difference as $element) {
             $this->warn(sprintf('!!! Element updated at %s !!!', Carbon::now()->format('Y-m-d H:i:s')));
 
