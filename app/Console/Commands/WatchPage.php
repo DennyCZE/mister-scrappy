@@ -106,7 +106,7 @@ class WatchPage extends Command
             if (!in_array($key, $differences['missing'])) {
                 $notifyElements[] = [
                     'type' => 'added',
-                    'element' => $rememberedElements->get($key),
+                    'element' => $newElements->get($key),
                 ];
             }
         }
