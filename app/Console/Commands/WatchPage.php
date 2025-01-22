@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\DiscordNotifier;
 use App\Models\PageData;
 use App\Models\PageStage;
 use Carbon\Carbon;
@@ -80,7 +81,10 @@ class WatchPage extends Command
         if ($stage->first_element_data != json_encode($first)) {
             $this->warn(sprintf('!!! Elements updated at %s !!!', Carbon::now()->format('Y-m-d H:i:s')));
 
-            // Notify here
+            $discordNotifier = new DiscordNotifier();
+            $discordNotifier->notifyWebhook(
+                $discordNotifier->prepareMessage($first)
+            );
 
             $stage->update([
                 'first_element_data' => json_encode($first),
