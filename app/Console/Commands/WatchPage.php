@@ -75,18 +75,53 @@ class WatchPage extends Command
     {
         $newElements = collect($this->scrap());
 
-        $difference = $rememberedElements->flatten()->diff($newElements->flatten());
-        foreach ($difference as $element) {
+        $rememberedFingerprints = $rememberedElements->map(function ($element) {
+            return md5(json_encode($element));
+        });
+        $newFingerprints = $newElements->map(function ($element) {
+            return md5(json_encode($element));
+        });
+
+        $differences = [
+            'missing' => array_values(array_flip($rememberedFingerprints->diff($newFingerprints)->toArray())),
+            'new' => array_values(array_flip($newFingerprints->diff($rememberedFingerprints)->toArray())),
+        ];
+
+
+        $notifyElements = [];
+        foreach ($differences['missing'] as $key) {
+            if (in_array($key, $differences['new'])) {
+                $notifyElements[] = [
+                    'type' => 'updated',
+                    'element' => $rememberedElements->get($key),
+                ];
+            } else {
+                $notifyElements[] = [
+                    'type' => 'removed',
+                    'element' => $rememberedElements->get($key),
+                ];
+            }
+        }
+        foreach ($differences['new'] as $key) {
+            if (!in_array($key, $differences['missing'])) {
+                $notifyElements[] = [
+                    'type' => 'added',
+                    'element' => $rememberedElements->get($key),
+                ];
+            }
+        }
+
+        foreach ($notifyElements as $element) {
             $this->warn(sprintf('!!! Element updated at %s !!!', Carbon::now()->format('Y-m-d H:i:s')));
 
             $discordNotifier = new DiscordNotifier();
             $discordNotifier->notifyWebhook(
-                $discordNotifier->prepareMessage(config('scrapper.url'), $element)
+                $discordNotifier->prepareMessage(config('scrapper.url'), $element['element'], "Element was {$element['type']}")
             );
+        }
 
-            if ($newElements !== $rememberedElements) {
-                $rememberedElements = $newElements;
-            }
+        if ($newElements !== $rememberedElements || count($notifyElements) > 0) {
+            $rememberedElements = $newElements;
         }
 
         return $rememberedElements;

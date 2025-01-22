@@ -88,7 +88,7 @@ class PageData
                     'href' => $href,
                 ];
             } else {
-                $array[] = strip_tags($nodeHtml);
+                $array[] = trim(strip_tags($nodeHtml));
             }
         }
         return $array;
