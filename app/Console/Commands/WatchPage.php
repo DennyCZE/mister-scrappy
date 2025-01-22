@@ -83,7 +83,7 @@ class WatchPage extends Command
 
             $discordNotifier = new DiscordNotifier();
             $discordNotifier->notifyWebhook(
-                $discordNotifier->prepareMessage($first)
+                $discordNotifier->prepareMessage(config('scrapper.url'), $first)
             );
 
             $stage->update([
