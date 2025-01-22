@@ -27,7 +27,7 @@ RUN apt-get update \
 		&& apt-get clean \
 		&& rm -rf /var/lib/apt/lists/* \
 	# Install PHP extensions
-		&& docker-php-ext-install pdo_sqlite mbstring exif pcntl bcmath gd zip \
+		&& docker-php-ext-install pdo_sqlite mbstring exif pcntl bcmath gd zip xml \
     # https://stackoverflow.com/a/72322396
     	&& ln -s /usr/x86_64-linux-gnu/lib64/ /lib64 \
     # Install Node.JS
