@@ -34,6 +34,10 @@ class WatchPage extends Command
     {
         $this->info('Starting watch page ' . config('scrapper.url'));
 
+        $this->info('- Testing discord webhook...');
+        $discordNotifier = new DiscordNotifier();
+        $discordNotifier->notifyWebhook('*Scrapper watcher started*');
+
         $this->info('- Scrapping page data...');
         $elements = collect($this->scrap());
 
@@ -119,7 +123,7 @@ class WatchPage extends Command
             try {
                 if (isset($element['orig_element'])) {
                    $note .= sprintf(
-                       " (JSON with changes %s)",
+                       " (JSON with changes `%s`)",
                        json_encode(collect($element['orig_element'])->flatten()->diffAssoc(collect($element['element'])->flatten())->toArray())
                    );
                 }

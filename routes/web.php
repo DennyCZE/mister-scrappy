@@ -9,7 +9,3 @@ Route::get('/', function () {
         'status' => 'running'
     ]);
 });
-
-Route::get('/scrap/test', [ScrapController::class, 'test'])->name('scrap.test');
-
-Route::get('/notify/discord-test', [NotifyController::class, 'discordTest'])->name('notify.discord-test');

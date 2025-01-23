@@ -19,16 +19,6 @@ services:
       - mister-scrappy-network
     environment:
       PHP_IDE_CONFIG: serverName=localhost
-  nginx:
-    image: nginx:1.17-alpine
-    restart: unless-stopped
-    ports:
-      - ${FORWARD_NGINX_PORT}:80
-    volumes:
-      - ./:/var/www
-      - ./docker-compose/nginx:/etc/nginx/conf.d
-    networks:
-      - mister-scrappy-network
 networks:
   mister-scrappy-network:
     name: mister-scrappy-network-${APP_ENV}
