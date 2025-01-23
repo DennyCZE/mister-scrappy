@@ -1,7 +1,7 @@
 # Mister Scrappy
-Small page scrapper/crawler
+Small page scrapper/crawler using Laravel 11
 
-### Docker install
+### Docker preparation
 - create configuration file `cp .env.example .env`
   - in new `.env` file configure forward port and URI
   - for example
@@ -14,7 +14,7 @@ Small page scrapper/crawler
 - run `docker compose build app`
 - run `docker compose up -d`
 
-### Laravel install
+### App install
 Note: If you are using Docker use commands with prefix `docker compose exec app <command>`
 - download dependencies `composer install`
 - generate encryption key `php artisan key:generate`
@@ -38,5 +38,5 @@ Note: If you are using Docker use commands with prefix `docker compose exec app 
     DISCORD_WEBHOOK="https://discord.com/api/webhooks/<id>/<hash>"
     ...
     ```
-- scrapper can be tested on uri path `/scrap/test`
+- scrapper can be tested with command `php artisan app:test`
 - run command `php artisan app:watch-page` to watch changes on page
