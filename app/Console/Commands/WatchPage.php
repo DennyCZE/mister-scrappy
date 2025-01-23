@@ -46,6 +46,7 @@ class WatchPage extends Command
             sleep(config('scrapper.watcher_timeout'));
             try {
                 $elements = $this->scrapAndCompare($elements);
+                Log::debug('ScrapAndCompare run at ' . Carbon::now()->format('Y-m-d H:i:s'));
             } catch (Exception $exception) {
                 $this->error(sprintf('Unexcepted error (%s) occured at %s', $exception->getMessage(), Carbon::now()->format('Y-m-d H:i:s')));
                 Log::error('Watching page command exception: ' . $exception->getMessage());
