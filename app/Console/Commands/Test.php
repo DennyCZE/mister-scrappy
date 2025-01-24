@@ -27,14 +27,15 @@ class Test extends Command
      */
     public function handle()
     {
-        $this->info('Test app functionality:');
+        $this->info('Test app functionality');
         $this->info('- Scrapper [s]');
         $this->info('- Discord [d]');
+        $this->info('- Discord Error [e]');
         $functionality = $this->ask('Choose functionality for this test (enter character in [] from above):');
 
         switch ($functionality) {
             case 's':
-                $this->info('- Testing scrapper:');
+                $this->info('-- Testing scrapper');
                 $pageData = new PageData();
                 dd(
                     $pageData->fetchPageData(
@@ -44,14 +45,20 @@ class Test extends Command
                 );
                 break;
             case 'd':
-                $this->info('- Testing discord:');
-                $discordNotifier = new DiscordNotifier();
-                $discordNotifier->notifyWebhook('Test Webhook');
+                $this->info('-- Testing discord');
+                (new DiscordNotifier())->notifyWebhook('Test Webhook');
+                break;
+            case 'e':
+                $this->info('-- Testing discord error message');
+                (new DiscordNotifier())->notifyWebhook(
+                    sprintf("## Warning \n**Unexcepted error:** *%s*", "Testing discord error message!")
+                );
                 break;
             default:
-                $this->error('Unknown functionality');
+                $this->error('-- Unknown functionality');
                 break;
         }
+        $this->info('Test finished');
 
         return;
     }

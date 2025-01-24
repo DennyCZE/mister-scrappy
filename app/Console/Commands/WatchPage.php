@@ -63,7 +63,7 @@ class WatchPage extends Command
 
                 try {
                     $this->discordNotifier->notifyWebhook(
-                        sprintf("##Warning\n**Unexcepted error** *%s*", $exception->getMessage())
+                        sprintf("## Warning \n**Unexcepted error:** *%s*", $exception->getMessage())
                     );
                 } catch (Error|Exception $e) {}
             }
