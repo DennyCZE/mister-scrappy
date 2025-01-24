@@ -6,6 +6,7 @@ use App\Models\DiscordNotifier;
 use App\Models\PageData;
 use App\Models\PageStage;
 use Carbon\Carbon;
+use Error;
 use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
@@ -26,6 +27,14 @@ class WatchPage extends Command
      * @var string
      */
     protected $description = 'Will scrap page and watch for changes in scrapped elements with configure timeout';
+
+    private $discordNotifier;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->discordNotifier = new DiscordNotifier();
+    }
 
     /**
      * Execute the console command.
@@ -51,6 +60,12 @@ class WatchPage extends Command
                 $this->error(sprintf('Unexcepted error (%s) occured at %s', $exception->getMessage(), Carbon::now()->format('Y-m-d H:i:s')));
                 Log::error('Watching page command exception: ' . $exception->getMessage());
                 Log::error($exception);
+
+                try {
+                    $this->discordNotifier->notifyWebhook(
+                        sprintf("##Warning\n**Unexcepted error** *%s*", $exception->getMessage())
+                    );
+                } catch (Error|Exception $e) {}
             }
         }
     }
@@ -134,9 +149,8 @@ class WatchPage extends Command
                 Log::error($exception);
             }
 
-            $discordNotifier = new DiscordNotifier();
-            $discordNotifier->notifyWebhook(
-                $discordNotifier->prepareMessage(
+            $this->discordNotifier->notifyWebhook(
+                $this->discordNotifier->prepareMessage(
                     config('scrapper.url'),
                     $element['element'],
                     $note,
