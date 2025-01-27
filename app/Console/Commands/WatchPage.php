@@ -49,6 +49,7 @@ class WatchPage extends Command
 
         $this->info('- Scrapping page data...');
         $elements = collect($this->scrap());
+        $i = 1;
 
         $this->info('- Watching page');
         while (true) {
@@ -67,6 +68,14 @@ class WatchPage extends Command
                     );
                 } catch (Error|Exception $e) {}
             }
+
+            if ($i % config('scrapper.watcher_alive_message_period') === 0) {
+                $this->info('- Still watching page');
+                $discordNotifier->notifyWebhook('*Scrapper watcher is still alive*');
+                $i = 0;
+            }
+
+            $i++;
         }
     }
 
@@ -139,8 +148,14 @@ class WatchPage extends Command
             try {
                 if (isset($element['orig_element'])) {
                    $note .= sprintf(
-                       " (JSON with changes `%s`)",
-                       json_encode(collect($element['orig_element'])->flatten()->diffAssoc(collect($element['element'])->flatten())->toArray())
+                       " (Original values: [%s])",
+                       implode(
+                           ", ",
+                           collect($element['orig_element'])->flatten()->diffAssoc(collect($element['element'])->flatten())
+                               ->map(function ($value, $key) {
+                                   return "`line {$key}: {$value}`";
+                               })->toArray()
+                       )
                    );
                 }
             } catch (Exception $exception) {

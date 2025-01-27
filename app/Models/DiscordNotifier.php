@@ -27,7 +27,7 @@ class DiscordNotifier
 
     public function prepareMessage(string $uri, array $data, $note = null)
     {
-        $message = sprintf("*Změna na sledované stránce %s *\n\n", $uri);
+        $message = sprintf("*Změna na sledované stránce* %s\n\n", $uri);
         foreach ($data as $row) {
             if (!is_array($row)) {
                 if (strpos($row, ":")) {
