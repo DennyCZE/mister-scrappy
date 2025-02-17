@@ -3,20 +3,12 @@ Small page scrapper/crawler using Laravel 11
 
 ### Docker preparation
 - create configuration file `cp .env.example .env`
-  - in new `.env` file configure forward port and URI
-  - for example
-    ```dotenv
-    ...
-    APP_URL=http://localhost:8755
-    ...
-    FORWARD_NGINX_PORT=8755
-    ```
 - run `docker compose build app`
 - run `docker compose up -d`
 
 ### App install
 Note: If you are using Docker use commands with prefix `docker compose exec app <command>`
-- download dependencies `composer install`
+- download dependencies `composer install` for development or `composer install --no-dev` for production
 - generate encryption key `php artisan key:generate`
 - create sqlite DB file `touch database/database.sqlite`
 - migrate data to DB `php artisan migrate:fresh --seed`

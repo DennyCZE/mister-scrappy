@@ -1,4 +1,4 @@
-ARG PHP_VERSION="8.2-fpm"
+ARG PHP_VERSION="8.2-fpm-alpine"
 
 FROM php:${PHP_VERSION}
 
@@ -10,26 +10,20 @@ ARG laravel_env
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/lib64:/usr/x86_64-linux-gnu/lib"
 
 # Install system dependencies one-line https://stackoverflow.com/questions/44221775/docker-vfs-folder-size/73937539#73937539
-RUN apt-get update \
-    && apt-get install -y \
+RUN apk update && apk add --no-cache \
 		curl \
-		libonig-dev \
 		libxml2-dev \
 		libzip-dev \
-        libsqlite3-dev \
 		zip \
 		unzip \
-    # Clear cache
-		&& apt-get clean \
-		&& rm -rf /var/lib/apt/lists/* \
+        oniguruma-dev \
 	# Install PHP extensions
-		&& docker-php-ext-install pdo_sqlite mbstring bcmath zip xml \
+		&& docker-php-ext-install mbstring bcmath zip xml \
     # https://stackoverflow.com/a/72322396
-    	&& ln -s /usr/x86_64-linux-gnu/lib64/ /lib64 \
-	# Create system user to run Composer and Artisan Commands
-		&& useradd -G www-data,root -u $uid -d /home/$user $user \
-		&& mkdir -p /home/$user/.composer \
-		&& chown -R $user:$user /home/$user
+    	&& ln -s /usr/x86_64-linux-gnu/lib64/ /lib64
+
+# Create laravel user
+RUN addgroup -g $uid -S $user && adduser -u $uid -S $user -G $user
 
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
