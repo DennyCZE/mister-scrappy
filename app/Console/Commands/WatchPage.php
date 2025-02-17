@@ -44,8 +44,7 @@ class WatchPage extends Command
         $this->info('Starting watch page ' . config('scrapper.url'));
 
         $this->info('- Testing discord webhook...');
-        $discordNotifier = new DiscordNotifier();
-        $discordNotifier->notifyWebhook('*Scrapper watcher started*');
+        $this->discordNotifier->notifyWebhook('*Scrapper watcher started*');
 
         $this->info('- Scrapping page data...');
         $elements = collect($this->scrap());
@@ -71,7 +70,7 @@ class WatchPage extends Command
 
             if ($i % config('scrapper.watcher_alive_message_period') === 0) {
                 $this->info('- Still watching page');
-                $discordNotifier->notifyWebhook('*Scrapper watcher is still alive*');
+                $this->discordNotifier->notifyWebhook('*Scrapper watcher is still alive*');
                 $i = 0;
             }
 
@@ -104,6 +103,14 @@ class WatchPage extends Command
     {
         $newElements = collect($this->scrap());
 
+        if ($newElements->isEmpty()) {
+            $this->warn('!!! No elements found at ' . Carbon::now()->format('Y-m-d H:i:s') . ' !!!');
+
+            $this->discordNotifier->notifyWebhook('*No elements scrapped. Page might be down!*');
+
+            return $rememberedElements;
+        }
+
         $rememberedFingerprints = $rememberedElements->map(function ($element) {
             return md5(json_encode($element));
         });
@@ -115,7 +122,6 @@ class WatchPage extends Command
             'missing' => array_values(array_flip($rememberedFingerprints->diff($newFingerprints)->toArray())),
             'new' => array_values(array_flip($newFingerprints->diff($rememberedFingerprints)->toArray())),
         ];
-
 
         $notifyElements = [];
         foreach ($differences['missing'] as $key) {
