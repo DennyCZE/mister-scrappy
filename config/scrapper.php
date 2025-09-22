@@ -11,4 +11,6 @@ return [
 
     // Timeout in seconds (default 30 minutes)
     'watcher_alive_message_period' => env('SCRAPPER_WATCH_ALIVE_MESSAGE_PERIOD', 20),
+
+    'simple_href_format' => env('SCRAPPER_SIMPLE_HREF_FORMAT', false)
 ];

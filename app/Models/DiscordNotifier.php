@@ -35,8 +35,12 @@ class DiscordNotifier
                 } else {
                     $message .= "**" . $row . "**";
                 }
-            }  elseif (is_array($row) && isset($row['href'])) {
-                $message .= "Odkaz: " . $row['href'];
+            }  elseif (is_array($row) && isset($row['text'])) {
+                if (config('scrapper.simple_href_format')) {
+                    $message .= "**" . $row['text'] . "**: " . $row['href'];
+                } else {
+                    $message .= "Odkaz: " . $row['href'];
+                }
             }
 
             $message .= "\n";
