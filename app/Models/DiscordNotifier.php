@@ -37,7 +37,7 @@ class DiscordNotifier
                 }
             }  elseif (is_array($row) && isset($row['text'])) {
                 if (config('scrapper.simple_href_format')) {
-                    $message .= "**" . $row['text'] . "**: " . $row['href'];
+                    $message .= "**" . trim($row['text']) . "**: " . $row['href'];
                 } else {
                     $message .= "Odkaz: " . $row['href'];
                 }
@@ -45,6 +45,8 @@ class DiscordNotifier
 
             $message .= "\n";
         }
+
+        $message = str_replace("****\n", "", $message);
 
         if ($note) {
             $message .= "\n*" . $note . "*";
