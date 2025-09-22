@@ -76,6 +76,16 @@ class PageData
                 $link->loadHTML($nodeHtml);
                 $link = $link->getElementsByTagName('a')->item(0);
 
+                $domElToRemove = [];
+                foreach ($link->getElementsByTagName('button') as $item) {
+                    if (in_array($item->getAttribute('style'), ['display:none', 'display: none'])) {
+                        $domElToRemove[] = $item;
+                    }
+                }
+                foreach ($domElToRemove as $item) {
+                    $item->parentNode->removeChild($item);
+                }
+
                 $text = $link->nodeValue;
                 $href = $link->getAttribute('href');
 
@@ -84,7 +94,7 @@ class PageData
                 }
 
                 $array[] = [
-                    'text' => $text,
+                    'text' => trim($text),
                     'href' => $href,
                 ];
             } else {
