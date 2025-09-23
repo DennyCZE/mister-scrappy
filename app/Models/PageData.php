@@ -38,7 +38,7 @@ class PageData
             foreach ($nodes as $node) {
                 $value = $node->nodeValue;
 
-                if ($rule['rule']['method']($value, $rule['rule']['value'])) {
+                if ($rule['rule']['method']($value, $rule['rule']['value']) !== false) {
                     $data[$key][] = $this->htmlToArray($node->ownerDocument->saveXML($node), $uri, $rule['childWrapper'] ?? null);
                 }
             }
@@ -73,14 +73,17 @@ class PageData
 
             if (str_contains($nodeHtml, "href")) {
                 $link = new DOMDocument();
-                $link->loadHTML($nodeHtml);
+                $link->loadHTML('<meta http-equiv="Content-Type" content="text/html; charset=utf-8">' . $nodeHtml);
                 $link = $link->getElementsByTagName('a')->item(0);
 
                 $domElToRemove = [];
                 foreach ($link->getElementsByTagName('button') as $item) {
-                    if (in_array($item->getAttribute('style'), ['display:none', 'display: none'])) {
+                    if (in_array($item->getAttribute('style'), ['display:none', 'display: none']) || str_contains($item->getAttribute('class'), 'block_button disabled')) {
                         $domElToRemove[] = $item;
                     }
+                }
+                foreach ($link->getElementsByTagName('buttonstyle') as $item) {
+                    $domElToRemove[] = $item;
                 }
                 foreach ($domElToRemove as $item) {
                     $item->parentNode->removeChild($item);
