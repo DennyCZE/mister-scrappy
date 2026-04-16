@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Models\DiscordNotifier;
 use App\Models\PageData;
-use App\Models\PageStage;
 use Carbon\Carbon;
 use Error;
 use Exception;
@@ -41,35 +40,51 @@ class WatchPage extends Command
      */
     public function handle()
     {
-        $this->info('Starting watch page ' . config('scrapper.url'));
+        $pages = config('scrapper.pages');
+
+        if (empty($pages)) {
+            $this->error('No pages configured. Set SCRAPPER_URL_1 / SCRAPPER_RULES_1 in .env');
+            return 1;
+        }
+
+        $this->info(sprintf('Starting watch for %d page(s)', count($pages)));
+        foreach ($pages as $idx => $page) {
+            $this->info(sprintf('  [%d] %s', $idx + 1, $page['url']));
+        }
 
         $this->info('- Testing discord webhook...');
         $this->discordNotifier->notifyWebhook('*Scrapper watcher started*');
 
-        $this->info('- Scrapping page data...');
-        $elements = collect($this->scrap());
-        $i = 1;
+        $this->info('- Initial scrape...');
+        $remembered = [];
+        foreach ($pages as $idx => $page) {
+            $remembered[$idx] = collect($this->scrap($page));
+        }
 
-        $this->info('- Watching page');
+        $i = 1;
+        $this->info('- Watching pages');
         while (true) {
             sleep(config('scrapper.watcher_timeout'));
-            try {
-                $elements = $this->scrapAndCompare($elements);
-                Log::debug('ScrapAndCompare run at ' . Carbon::now()->format('Y-m-d H:i:s'));
-            } catch (Exception $exception) {
-                $this->error(sprintf('Unexcepted error (%s) occured at %s', $exception->getMessage(), Carbon::now()->format('Y-m-d H:i:s')));
-                Log::error('Watching page command exception: ' . $exception->getMessage());
-                Log::error($exception);
 
+            foreach ($pages as $idx => $page) {
                 try {
-                    $this->discordNotifier->notifyWebhook(
-                        sprintf("## Warning \n**Unexcepted error:** *%s*", $exception->getMessage())
-                    );
-                } catch (Error|Exception $e) {}
+                    $remembered[$idx] = $this->scrapAndCompare($page, $remembered[$idx]);
+                    Log::debug(sprintf('ScrapAndCompare for %s run at %s', $page['url'], Carbon::now()->format('Y-m-d H:i:s')));
+                } catch (Exception $exception) {
+                    $this->error(sprintf('Unexcepted error (%s) occured at %s for %s', $exception->getMessage(), Carbon::now()->format('Y-m-d H:i:s'), $page['url']));
+                    Log::error('Watching page command exception: ' . $exception->getMessage());
+                    Log::error($exception);
+
+                    try {
+                        $this->discordNotifier->notifyWebhook(
+                            sprintf("## Warning \n**Unexcepted error on %s:** *%s*", $page['url'], $exception->getMessage())
+                        );
+                    } catch (Error|Exception $e) {}
+                }
             }
 
             if ($i % config('scrapper.watcher_alive_message_period') === 0) {
-                $this->info('- Still watching page');
+                $this->info('- Still watching pages');
                 $this->discordNotifier->notifyWebhook('*Scrapper watcher is still alive*');
                 $i = 0;
             }
@@ -78,35 +93,23 @@ class WatchPage extends Command
         }
     }
 
-    private function scrap()
+    private function scrap(array $page)
     {
         $pageData = new PageData();
         return $pageData->fetchPageData(
-            config('scrapper.url'),
-            json_decode(config('scrapper.rules'), true) ?? [],
+            $page['url'],
+            json_decode($page['rules'], true) ?? [],
         );
     }
 
-    private function scrapAndSave()
+    private function scrapAndCompare(array $page, Collection $rememberedElements)
     {
-        $elements = $this->scrap();
-
-        $stage = new PageStage();
-        $stage->uri = config('scrapper.url');
-        $stage->first_element_data = json_encode(collect($elements)->first());
-        $stage->save();
-
-        return $stage;
-    }
-
-    private function scrapAndCompare(Collection $rememberedElements)
-    {
-        $newElements = collect($this->scrap());
+        $newElements = collect($this->scrap($page));
 
         if ($newElements->isEmpty()) {
-            $this->warn('!!! No elements found at ' . Carbon::now()->format('Y-m-d H:i:s') . ' !!!');
+            $this->warn(sprintf('!!! No elements found for %s at %s !!!', $page['url'], Carbon::now()->format('Y-m-d H:i:s')));
 
-            $this->discordNotifier->notifyWebhook('*No elements scrapped. Page might be down!*');
+            $this->discordNotifier->notifyWebhook(sprintf('*No elements scrapped for %s. Page might be down!*', $page['url']));
 
             return $rememberedElements;
         }
@@ -148,7 +151,7 @@ class WatchPage extends Command
         }
 
         foreach ($notifyElements as $element) {
-            $this->warn(sprintf('!!! Element updated at %s !!!', Carbon::now()->format('Y-m-d H:i:s')));
+            $this->warn(sprintf('!!! Element updated on %s at %s !!!', $page['url'], Carbon::now()->format('Y-m-d H:i:s')));
 
             $note = "Element was {$element['type']}";
             try {
@@ -172,7 +175,7 @@ class WatchPage extends Command
 
             $this->discordNotifier->notifyWebhook(
                 $this->discordNotifier->prepareMessage(
-                    config('scrapper.url'),
+                    $page['url'],
                     $element['element'],
                     $note,
                 )

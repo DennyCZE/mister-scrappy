@@ -36,13 +36,40 @@ class Test extends Command
         switch ($functionality) {
             case 's':
                 $this->info('-- Testing scrapper');
+                $pages = config('scrapper.pages');
+                if (empty($pages)) {
+                    $this->error('No pages configured. Set SCRAPPER_URL_1 / SCRAPPER_RULES_1 in .env');
+                    break;
+                }
+
+                $this->info('Configured pages:');
+                foreach ($pages as $idx => $page) {
+                    $this->info(sprintf('  [%d] %s', $idx + 1, $page['url']));
+                }
+
+                $selection = $this->ask('Enter page number (or "all"):', '1');
                 $pageData = new PageData();
-                dd(
-                    $pageData->fetchPageData(
-                        config('scrapper.url'),
-                        json_decode(config('scrapper.rules'), true)
-                    )
-                );
+
+                if ($selection === 'all') {
+                    foreach ($pages as $idx => $page) {
+                        $this->info(sprintf('-- Page [%d] %s', $idx + 1, $page['url']));
+                        dump($pageData->fetchPageData(
+                            $page['url'],
+                            json_decode($page['rules'], true) ?? []
+                        ));
+                    }
+                    break;
+                }
+
+                $idx = ((int) $selection) - 1;
+                if (!isset($pages[$idx])) {
+                    $this->error('Invalid selection');
+                    break;
+                }
+                dd($pageData->fetchPageData(
+                    $pages[$idx]['url'],
+                    json_decode($pages[$idx]['rules'], true) ?? []
+                ));
                 break;
             case 'd':
                 $this->info('-- Testing discord');

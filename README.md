@@ -14,12 +14,14 @@ Note: If you are using Docker use commands with prefix `docker compose exec app 
 - migrate data to DB `php artisan migrate:fresh --seed`
 
 ### Usage
-- configure `.env` with desired page, rules and timeout
+- configure `.env` with pages, rules and timeout. Pages use numbered pairs (`_1`, `_2`, ...); add as many as needed.
   - example
     ```dotenv
     ...
-    SCRAPPER_URL="https://google.com/"
-    SCRAPPER_RULES='{"buttons":{"child_text":"Detail","parent":["<div class=\"container\">","</div>"],"wrapper":"div[contains(@class, \"col-6\")]","childWrapper":"strong","rule":{"method":"strpos","value":"Detail"}}}'
+    SCRAPPER_URL_1="https://google.com/"
+    SCRAPPER_RULES_1='{"buttons":{"child_text":"Detail","parent":["<div class=\"container\">","</div>"],"wrapper":"div[contains(@class, \"col-6\")]","childWrapper":"strong","rule":{"method":"strpos","value":"Detail"}}}'
+    SCRAPPER_URL_2="https://example.com/"
+    SCRAPPER_RULES_2='{...}'
     SCRAPPER_WATCH_TIMEOUT="1800"
     ...
     ```
