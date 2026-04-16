@@ -7,7 +7,6 @@ use DOMElement;
 use DOMXPath;
 use Exception;
 use Illuminate\Support\Facades\Http;
-use function Termwind\parse;
 
 class PageData
 {
@@ -39,7 +38,15 @@ class PageData
                 $value = $node->nodeValue;
 
                 if ($rule['rule']['method']($value, $rule['rule']['value']) !== false) {
-                    $data[$key][] = $this->htmlToArray($node->ownerDocument->saveXML($node), $uri, $rule['childWrapper'] ?? null);
+                    $parsed = $this->htmlToArray(
+                        $node->ownerDocument->saveXML($node),
+                        $uri,
+                        $rule['childWrapper'] ?? null,
+                        $rule['childLabelWrapper'] ?? null,
+                    );
+                    if (!empty($parsed)) {
+                        $data[$key][] = $parsed;
+                    }
                 }
             }
         }
@@ -47,7 +54,7 @@ class PageData
         return count($data) == 1 ? collect($data)->first() : $data;
     }
 
-    private function htmlToArray(string $html, $uri = null, $wrapper = 'div') :array
+    private function htmlToArray(string $html, $uri = null, $wrapper = 'div', $labelWrapper = null) :array
     {
         try {
             $uri = parse_url($uri);
@@ -64,12 +71,22 @@ class PageData
         $finder = new DomXPath($dom);
         $nodes = $finder->query("//" . $wrapper);
 
+        $labels = [];
+        if ($labelWrapper) {
+            foreach ($finder->query("//" . $labelWrapper) as $labelNode) {
+                $labels[] = trim($labelNode->nodeValue);
+            }
+        }
+
         $array = [];
+        $i = 0;
 
         /** @var DOMElement $node */
         foreach($nodes as $node)
         {
             $nodeHtml = $dom->saveHTML($node);
+            $label = $labels[$i] ?? null;
+            $i++;
 
             if (str_contains($nodeHtml, "href")) {
                 $link = new DOMDocument();
@@ -89,19 +106,35 @@ class PageData
                     $item->parentNode->removeChild($item);
                 }
 
-                $text = $link->nodeValue;
-                $href = $link->getAttribute('href');
+                $text = trim($link->nodeValue);
+                // Source pages sometimes contain malformed href="…\" (literal trailing backslash).
+                $href = rtrim($link->getAttribute('href'), '\\');
 
                 if (!str_contains($href, "http") && $uri && is_array($uri)) {
                     $href = $uri['scheme'] . "://" . $uri['host'] . $href;
                 }
 
-                $array[] = [
-                    'text' => trim($text),
+                $entry = [
+                    'text' => $text,
                     'href' => $href,
                 ];
+                if ($label !== null) {
+                    $entry['label'] = $label;
+                }
+                $array[] = $entry;
             } else {
-                $array[] = trim(strip_tags($nodeHtml));
+                $text = trim(strip_tags($nodeHtml));
+                if ($label !== null) {
+                    if ($text === '' && $label === '') {
+                        continue;
+                    }
+                    $array[] = [
+                        'label' => $label,
+                        'text' => $text,
+                    ];
+                } else {
+                    $array[] = $text;
+                }
             }
         }
         return $array;

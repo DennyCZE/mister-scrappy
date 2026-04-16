@@ -28,28 +28,58 @@ class DiscordNotifier
     public function prepareMessage(string $uri, array $data, $note = null)
     {
         $message = sprintf("*Změna na sledované stránce* %s\n\n", $uri);
+
+        $lines = [];
+        $primaryHref = null;
+        $simpleHrefFormat = config('scrapper.simple_href_format');
+
         foreach ($data as $row) {
             if (!is_array($row)) {
-                if (strpos($row, ":")) {
-                    $message .= "**" . Str::replaceFirst(":", ":** ", $row);
-                } else {
-                    $message .= "**" . $row . "**";
+                $text = trim($row);
+                if ($text === '') {
+                    continue;
                 }
-            }  elseif (is_array($row) && isset($row['text'])) {
-                if (config('scrapper.simple_href_format')) {
-                    $message .= "**" . trim($row['text']) . "**: " . $row['href'];
+                if (strpos($text, ":")) {
+                    $lines[] = "**" . Str::replaceFirst(":", ":** ", $text);
                 } else {
-                    $message .= "Odkaz: " . $row['href'];
+                    $lines[] = "**" . $text . "**";
                 }
+                continue;
             }
 
-            $message .= "\n";
+            $label = array_key_exists('label', $row) ? trim($row['label']) : null;
+            $text = isset($row['text']) ? trim($row['text']) : '';
+            $href = $row['href'] ?? null;
+
+            if ($label !== null) {
+                // New labeled shape from childLabelWrapper rule.
+                if ($label !== '' && $text !== '') {
+                    $lines[] = "**{$label}:** {$text}";
+                }
+                if ($href) {
+                    $primaryHref = $href;
+                }
+                continue;
+            }
+
+            // Legacy link shape: { text, href }.
+            if ($simpleHrefFormat && $text !== '' && $href) {
+                $lines[] = "**" . $text . "**: " . $href;
+            } elseif ($href) {
+                $primaryHref = $href;
+            } elseif ($text !== '') {
+                $lines[] = $text;
+            }
         }
 
-        $message = str_replace("****\n", "", $message);
+        if ($primaryHref) {
+            $lines[] = "Odkaz: " . $primaryHref;
+        }
+
+        $message .= implode("\n", $lines);
 
         if ($note) {
-            $message .= "\n*" . $note . "*";
+            $message .= "\n\n*" . $note . "*";
         }
 
         return $message;
