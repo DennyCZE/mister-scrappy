@@ -1,3 +1,5 @@
+name: mister-scrappy
+
 services:
   app:
     build:
