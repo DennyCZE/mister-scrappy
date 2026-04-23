@@ -1,0 +1,60 @@
+# Keep build context clean — anything here is also excluded from COPY . .
+
+# Secrets & runtime-only config (bind-mounted at runtime)
+.env
+.env.*
+!.env.example
+
+# VCS & editor junk
+.git
+.gitignore
+.gitattributes
+.github
+.idea
+.vscode
+.zed
+.nova
+.fleet
+.phpactor.json
+
+# macOS / OS junk
+.DS_Store
+**/.DS_Store
+
+# Host-built artifacts (vendor is installed fresh in the image)
+vendor
+node_modules
+public/build
+public/hot
+
+# SQLite state (persisted via named volume on the server)
+database/database.sqlite
+database/*.sqlite
+
+# Storage — container creates fresh dirs, volume handles persistence
+storage/logs/*.log
+storage/framework/cache/data
+storage/framework/sessions
+storage/framework/views
+storage/pail
+storage/debugbar
+
+# Test infra — not needed at runtime
+.phpunit.cache
+.phpunit.result.cache
+
+# Docker / deploy files (not needed inside the image)
+Dockerfile
+Dockerfile.prod
+docker-compose.yml
+docker-compose.prod.yml
+docker-compose/.DS_Store
+
+# Docs
+README.md
+CLAUDE.md
+
+# Logs
+*.log
+npm-debug.log
+yarn-error.log

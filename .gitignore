@@ -22,3 +22,7 @@ yarn-error.log
 /.vscode
 /.zed
 CLAUDE.md
+
+# Production / VPS-only files (live on the server, never committed)
+Dockerfile.prod
+docker-compose.prod.yml

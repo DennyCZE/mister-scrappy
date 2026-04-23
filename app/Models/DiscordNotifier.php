@@ -29,6 +29,11 @@ class DiscordNotifier
     {
         $message = sprintf("*Změna na sledované stránce* %s\n\n", $uri);
 
+        // Some pages split the time across sibling elements to animate the
+        // colon separator (e.g. "27.4. 2026 15:" + "30:00"). Stitch those
+        // fragments back together before rendering so the time stays on one line.
+        $data = $this->mergeDanglingColonRows($data);
+
         $lines = [];
         $primaryHref = null;
         $simpleHrefFormat = config('scrapper.simple_href_format');
@@ -39,7 +44,10 @@ class DiscordNotifier
                 if ($text === '') {
                     continue;
                 }
-                if (strpos($text, ":")) {
+                // Treat as "label: value" only when there's a real word before
+                // the colon and a space after, otherwise times like "15:30" get
+                // mangled into "**15:** 30".
+                if (preg_match('/^[^:]*\p{L}[^:]*:\s/u', $text)) {
                     $lines[] = "**" . Str::replaceFirst(":", ":** ", $text);
                 } else {
                     $lines[] = "**" . $text . "**";
@@ -83,5 +91,20 @@ class DiscordNotifier
         }
 
         return $message;
+    }
+
+    private function mergeDanglingColonRows(array $data): array
+    {
+        $merged = [];
+        foreach ($data as $row) {
+            $lastIndex = count($merged) - 1;
+            $last = $lastIndex >= 0 ? $merged[$lastIndex] : null;
+            if (is_string($row) && is_string($last) && str_ends_with(rtrim($last), ':')) {
+                $merged[$lastIndex] = rtrim($last) . ' ' . trim($row);
+                continue;
+            }
+            $merged[] = $row;
+        }
+        return $merged;
     }
 }
