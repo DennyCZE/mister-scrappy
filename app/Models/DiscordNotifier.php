@@ -45,9 +45,9 @@ class DiscordNotifier
                     continue;
                 }
                 // Treat as "label: value" only when there's a real word before
-                // the colon and a space after, otherwise times like "15:30" get
-                // mangled into "**15:** 30".
-                if (preg_match('/^[^:]*\p{L}[^:]*:\s/u', $text)) {
+                // the colon, otherwise times like "15:30" get mangled into
+                // "**15:** 30".
+                if (preg_match('/^[^:]*\p{L}[^:]*:/u', $text)) {
                     $lines[] = "**" . Str::replaceFirst(":", ":** ", $text);
                 } else {
                     $lines[] = "**" . $text . "**";
