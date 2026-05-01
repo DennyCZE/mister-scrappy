@@ -40,7 +40,7 @@ class DiscordNotifier
 
         foreach ($data as $row) {
             if (!is_array($row)) {
-                $text = trim($row);
+                $text = $this->escapeDiscordListMarkers(trim($row));
                 if ($text === '') {
                     continue;
                 }
@@ -55,8 +55,8 @@ class DiscordNotifier
                 continue;
             }
 
-            $label = array_key_exists('label', $row) ? trim($row['label']) : null;
-            $text = isset($row['text']) ? trim($row['text']) : '';
+            $label = array_key_exists('label', $row) ? $this->escapeDiscordListMarkers(trim($row['label'])) : null;
+            $text = isset($row['text']) ? $this->escapeDiscordListMarkers(trim($row['text'])) : '';
             $href = $row['href'] ?? null;
 
             if ($label !== null) {
@@ -91,6 +91,15 @@ class DiscordNotifier
         }
 
         return $message;
+    }
+
+    private function escapeDiscordListMarkers(string $text): string
+    {
+        // Czech dates like "4. 5. 2026" get parsed as an ordered list by
+        // Discord (notably mobile), which rewrites "4." / "5." as list
+        // markers and visually swallows the date. Escape the dot so the
+        // parser leaves it alone while users still see "4. 5. 2026".
+        return preg_replace('/(?<!\d)(\d{1,9})\./u', '$1\\.', $text);
     }
 
     private function mergeDanglingColonRows(array $data): array
