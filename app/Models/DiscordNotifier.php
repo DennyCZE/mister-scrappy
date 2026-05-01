@@ -63,6 +63,15 @@ class DiscordNotifier
                 // New labeled shape from childLabelWrapper rule.
                 if ($label !== '' && $text !== '') {
                     $lines[] = "**{$label}:** {$text}";
+                } elseif ($label === '' && $text !== '') {
+                    // Empty label cell (e.g. hardtask's "volno: N" register
+                    // button has no field-name sibling). Render the text as
+                    // a standalone bold line so the info isn't dropped.
+                    if (preg_match('/^[^:]*\p{L}[^:]*:/u', $text)) {
+                        $lines[] = "**" . Str::replaceFirst(":", ":** ", $text);
+                    } else {
+                        $lines[] = "**" . $text . "**";
+                    }
                 }
                 if ($href) {
                     $primaryHref = $href;
