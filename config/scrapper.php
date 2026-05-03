@@ -9,6 +9,10 @@ for ($i = 1; ; $i++) {
     $pages[] = [
         'url' => $url,
         'rules' => env("SCRAPPER_RULES_{$i}", ''),
+        // Optional target timezone (e.g. "Europe/Prague"). When set, HH:MM
+        // / HH:MM:SS substrings in the scraped values are interpreted as
+        // UTC and shifted into this zone before being sent to Discord.
+        'timezone' => env("SCRAPPER_TIMEZONE_{$i}"),
     ];
 }
 

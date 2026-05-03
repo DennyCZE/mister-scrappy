@@ -178,6 +178,7 @@ class WatchPage extends Command
                     $page['url'],
                     $element['element'],
                     $note,
+                    $page['timezone'] ?? null,
                 )
             );
         }

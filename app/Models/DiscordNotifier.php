@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
@@ -25,7 +26,7 @@ class DiscordNotifier
         ]);
     }
 
-    public function prepareMessage(string $uri, array $data, $note = null)
+    public function prepareMessage(string $uri, array $data, $note = null, ?string $timezone = null)
     {
         $message = sprintf("*Změna na sledované stránce* %s\n\n", $uri);
 
@@ -33,6 +34,10 @@ class DiscordNotifier
         // colon separator (e.g. "27.4. 2026 15:" + "30:00"). Stitch those
         // fragments back together before rendering so the time stays on one line.
         $data = $this->mergeDanglingColonRows($data);
+
+        if ($timezone) {
+            $data = $this->shiftTimes($data, $timezone);
+        }
 
         $lines = [];
         $primaryHref = null;
@@ -109,6 +114,36 @@ class DiscordNotifier
         // markers and visually swallows the date. Escape the dot so the
         // parser leaves it alone while users still see "4. 5. 2026".
         return preg_replace('/(?<!\d)(\d{1,9})\./u', '$1\\.', $text);
+    }
+
+    private function shiftTimes(array $data, string $timezone): array
+    {
+        $shift = function (string $text) use ($timezone): string {
+            return preg_replace_callback(
+                '/(?<!\d)(\d{1,2}):(\d{2})(?::(\d{2}))?(?!\d)/',
+                function ($m) use ($timezone) {
+                    try {
+                        $time = Carbon::createFromTimeString(
+                            sprintf('%02d:%02d:%02d', (int) $m[1], (int) $m[2], (int) ($m[3] ?? 0)),
+                            'UTC'
+                        )->setTimezone($timezone);
+                    } catch (\Throwable) {
+                        return $m[0];
+                    }
+                    return isset($m[3]) ? $time->format('H:i:s') : $time->format('H:i');
+                },
+                $text
+            );
+        };
+
+        foreach ($data as $i => $row) {
+            if (is_string($row)) {
+                $data[$i] = $shift($row);
+            } elseif (is_array($row) && isset($row['text']) && is_string($row['text'])) {
+                $data[$i]['text'] = $shift($row['text']);
+            }
+        }
+        return $data;
     }
 
     private function mergeDanglingColonRows(array $data): array
