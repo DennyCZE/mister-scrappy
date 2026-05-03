@@ -153,7 +153,8 @@ class WatchPage extends Command
         foreach ($notifyElements as $element) {
             $this->warn(sprintf('!!! Element updated on %s at %s !!!', $page['url'], Carbon::now()->format('Y-m-d H:i:s')));
 
-            $note = "Element was {$element['type']}";
+            $emoji = ['added' => '🟢', 'updated' => '🟡', 'removed' => '🔴'][$element['type']] ?? '';
+            $note = trim("{$emoji} Element was {$element['type']}");
             try {
                 if (isset($element['orig_element'])) {
                    $note .= sprintf(
