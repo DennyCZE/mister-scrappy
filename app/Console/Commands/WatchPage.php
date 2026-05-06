@@ -29,6 +29,8 @@ class WatchPage extends Command
 
     private $discordNotifier;
 
+    private array $downPages = [];
+
     public function __construct()
     {
         parent::__construct();
@@ -68,7 +70,7 @@ class WatchPage extends Command
 
             foreach ($pages as $idx => $page) {
                 try {
-                    $remembered[$idx] = $this->scrapAndCompare($page, $remembered[$idx]);
+                    $remembered[$idx] = $this->scrapAndCompare($idx, $page, $remembered[$idx]);
                     Log::debug(sprintf('ScrapAndCompare for %s run at %s', $page['url'], Carbon::now()->format('Y-m-d H:i:s')));
                 } catch (Exception $exception) {
                     $this->error(sprintf('Unexcepted error (%s) occured at %s for %s', $exception->getMessage(), Carbon::now()->format('Y-m-d H:i:s'), $page['url']));
@@ -102,16 +104,24 @@ class WatchPage extends Command
         );
     }
 
-    private function scrapAndCompare(array $page, Collection $rememberedElements)
+    private function scrapAndCompare(int $idx, array $page, Collection $rememberedElements)
     {
         $newElements = collect($this->scrap($page));
 
         if ($newElements->isEmpty()) {
             $this->warn(sprintf('!!! No elements found for %s at %s !!!', $page['url'], Carbon::now()->format('Y-m-d H:i:s')));
 
-            $this->discordNotifier->notifyWebhook(sprintf('*No elements scrapped for %s. Page might be down!*', $page['url']));
+            if (empty($this->downPages[$idx])) {
+                $this->downPages[$idx] = true;
+                $this->discordNotifier->notifyWebhook(sprintf('*No elements scrapped for %s. Page might be down!*', $page['url']));
+            }
 
             return $rememberedElements;
+        }
+
+        if (!empty($this->downPages[$idx])) {
+            unset($this->downPages[$idx]);
+            $this->discordNotifier->notifyWebhook(sprintf('*Page %s is back up.*', $page['url']));
         }
 
         $rememberedFingerprints = $rememberedElements->map(function ($element) {
