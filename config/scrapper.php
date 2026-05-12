@@ -13,6 +13,7 @@ for ($i = 1; ; $i++) {
         // / HH:MM:SS substrings in the scraped values are interpreted as
         // UTC and shifted into this zone before being sent to Discord.
         'timezone' => env("SCRAPPER_TIMEZONE_{$i}"),
+        'thumbnail' => env("SCRAPPER_THUMBNAIL_{$i}"),
     ];
 }
 

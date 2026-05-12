@@ -163,34 +163,13 @@ class WatchPage extends Command
         foreach ($notifyElements as $element) {
             $this->warn(sprintf('!!! Element updated on %s at %s !!!', $page['url'], Carbon::now()->format('Y-m-d H:i:s')));
 
-            $emoji = ['added' => '🟢', 'updated' => '🟡', 'removed' => '🔴'][$element['type']] ?? '';
-            $note = trim("{$emoji} Element was {$element['type']}");
-            try {
-                if (isset($element['orig_element'])) {
-                   $note .= sprintf(
-                       " (Original values: [%s])",
-                       implode(
-                           ", ",
-                           collect($element['orig_element'])->flatten()->diffAssoc(collect($element['element'])->flatten())
-                               ->map(function ($value, $key) {
-                                   return "`line {$key}: {$value}`";
-                               })->toArray()
-                       )
-                   );
-                }
-            } catch (Exception $exception) {
-                $this->error(sprintf('Unexcepted error (%s) occured at %s', $exception->getMessage(), Carbon::now()->format('Y-m-d H:i:s')));
-                Log::error('Watching page parsing changes exception: ' . $exception->getMessage());
-                Log::error($exception);
-            }
-
-            $this->discordNotifier->notifyWebhook(
-                $this->discordNotifier->prepareMessage(
-                    $page['url'],
-                    $element['element'],
-                    $note,
-                    $page['timezone'] ?? null,
-                )
+            $this->discordNotifier->notifyChange(
+                $page['url'],
+                $element['element'],
+                $element['type'],
+                $element['orig_element'] ?? null,
+                $page['timezone'] ?? null,
+                $page['thumbnail'] ?? null,
             );
         }
 
