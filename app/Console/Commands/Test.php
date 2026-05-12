@@ -31,6 +31,7 @@ class Test extends Command
         $this->info('- Scrapper [s]');
         $this->info('- Discord [d]');
         $this->info('- Discord Error [e]');
+        $this->info('- Discord Change Notification (random page/element/type) [n]');
         $functionality = $this->ask('Choose functionality for this test (enter character in [] from above):');
 
         switch ($functionality) {
@@ -81,6 +82,42 @@ class Test extends Command
                     sprintf("## Warning \n**Unexcepted error:** *%s*", "Testing discord error message!")
                 );
                 break;
+            case 'n':
+                $this->info('-- Testing discord change notification');
+                $pages = config('scrapper.pages');
+                if (empty($pages)) {
+                    $this->error('No pages configured. Set SCRAPPER_URL_1 / SCRAPPER_RULES_1 in .env');
+                    break;
+                }
+
+                $page = $pages[array_rand($pages)];
+                $this->info(sprintf('Random page: %s', $page['url']));
+
+                $elements = (new PageData())->fetchPageData(
+                    $page['url'],
+                    json_decode($page['rules'], true) ?? []
+                );
+                if (empty($elements)) {
+                    $this->error('No elements scrapped from selected page');
+                    break;
+                }
+
+                $element = $elements[array_rand($elements)];
+                $types = ['added', 'updated', 'removed'];
+                $type = $types[array_rand($types)];
+                $this->info(sprintf('Random type: %s', $type));
+
+                $orig = $type === 'updated' ? $this->fabricateOrigElement($element) : null;
+
+                (new DiscordNotifier())->notifyChange(
+                    $page['url'],
+                    $element,
+                    $type,
+                    $orig,
+                    $page['timezone'] ?? null,
+                    $page['thumbnail'] ?? null,
+                );
+                break;
             default:
                 $this->error('-- Unknown functionality');
                 break;
@@ -88,5 +125,20 @@ class Test extends Command
         $this->info('Test finished');
 
         return;
+    }
+
+    private function fabricateOrigElement(array $element): array
+    {
+        foreach ($element as $i => $row) {
+            if (is_string($row) && trim($row) !== '') {
+                $element[$i] = '[changed] ' . $row;
+                return $element;
+            }
+            if (is_array($row) && isset($row['text']) && trim($row['text']) !== '') {
+                $element[$i]['text'] = '[changed] ' . $row['text'];
+                return $element;
+            }
+        }
+        return $element;
     }
 }
