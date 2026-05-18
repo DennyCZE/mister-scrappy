@@ -43,6 +43,7 @@ class PageData
                         $uri,
                         $rule['childWrapper'] ?? null,
                         $rule['childLabelWrapper'] ?? null,
+                        $rule['childInnerLabelWrapper'] ?? null,
                     );
                     if (!empty($parsed)) {
                         $data[$key][] = $parsed;
@@ -54,7 +55,7 @@ class PageData
         return count($data) == 1 ? collect($data)->first() : $data;
     }
 
-    private function htmlToArray(string $html, $uri = null, $wrapper = 'div', $labelWrapper = null) :array
+    private function htmlToArray(string $html, $uri = null, $wrapper = 'div', $labelWrapper = null, $innerLabelWrapper = null) :array
     {
         try {
             $uri = parse_url($uri);
@@ -72,7 +73,7 @@ class PageData
         $nodes = $finder->query("//" . $wrapper);
 
         $labels = [];
-        if ($labelWrapper) {
+        if ($labelWrapper && !$innerLabelWrapper) {
             foreach ($finder->query("//" . $labelWrapper) as $labelNode) {
                 $labels[] = trim($labelNode->nodeValue);
             }
@@ -80,13 +81,24 @@ class PageData
 
         $array = [];
         $i = 0;
+        $titleAssigned = false;
 
         /** @var DOMElement $node */
         foreach($nodes as $node)
         {
             $nodeHtml = $dom->saveHTML($node);
-            $label = $labels[$i] ?? null;
+            $globalLabel = $labels[$i] ?? null;
             $i++;
+
+            $innerLabel = null;
+            if ($innerLabelWrapper) {
+                $found = $finder->query(".//" . $innerLabelWrapper, $node);
+                if ($found->length > 0) {
+                    $innerLabel = trim($found->item(0)->nodeValue);
+                }
+            }
+
+            $label = $innerLabelWrapper ? $innerLabel : $globalLabel;
 
             if (str_contains($nodeHtml, "href")) {
                 $link = new DOMDocument();
@@ -114,6 +126,16 @@ class PageData
                     $href = $uri['scheme'] . "://" . $uri['host'] . $href;
                 }
 
+                if ($innerLabelWrapper && $innerLabel === null && !$titleAssigned && $text !== '' && $href) {
+                    $array[] = [
+                        'label' => '__title__',
+                        'text' => $text,
+                        'href' => $href,
+                    ];
+                    $titleAssigned = true;
+                    continue;
+                }
+
                 $entry = [
                     'text' => $text,
                     'href' => $href,
@@ -123,7 +145,14 @@ class PageData
                 }
                 $array[] = $entry;
             } else {
-                $text = trim(strip_tags($nodeHtml));
+                if ($innerLabelWrapper) {
+                    $text = $this->stripTagsWithSpaces($nodeHtml);
+                    if ($innerLabel !== null && $innerLabel !== '') {
+                        $text = trim(preg_replace('/^\s*' . preg_quote($innerLabel, '/') . '\s*/u', '', $text));
+                    }
+                } else {
+                    $text = trim(strip_tags($nodeHtml));
+                }
                 if ($label !== null) {
                     if ($text === '' && $label === '') {
                         continue;
@@ -138,5 +167,10 @@ class PageData
             }
         }
         return $array;
+    }
+
+    private function stripTagsWithSpaces(string $html): string
+    {
+        return trim(preg_replace('/\s+/', ' ', strip_tags(str_replace('<', ' <', $html))));
     }
 }

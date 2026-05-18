@@ -127,6 +127,9 @@ class DiscordNotifier
                 $label = isset($row['label']) ? trim($row['label']) : null;
                 $textVal = isset($row['text']) ? trim($row['text']) : '';
                 $href = $row['href'] ?? null;
+                if ($label === '__title__' && $textVal !== '') {
+                    return ['title' => $textVal, 'href' => $href, 'index' => $i];
+                }
                 if ($label !== null && $label !== '' && str_starts_with($label, 'Kurz') && $textVal !== '') {
                     return ['title' => $textVal, 'href' => $href, 'index' => $i];
                 }
