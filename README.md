@@ -1,5 +1,5 @@
 # Mister Scrappy
-Small page scrapper/crawler using Laravel 11
+Small page scrapper/crawler using Laravel 13
 
 ### Docker preparation
 - create configuration file `cp .env.example .env`
